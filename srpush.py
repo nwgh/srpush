@@ -1,8 +1,11 @@
+import base64
+import functools
 import json
 
 from flask import Flask
 from flask import g
 from flask import request
+from flask import Response
 
 app = Flask(__name__)
 
@@ -34,7 +37,46 @@ def teardown_request():
     conn.close()
 
 
+def auth_ok():
+    if not request.authorization:
+        return False
+
+    authstr = os.getenv('SRPUSH_AUTH', '')
+    if not authstr:
+        return False
+
+    try:
+        authjson = base64.b64decode(authstr)
+    except:
+        return False
+
+    try:
+        auth = json.loads(authjson)
+    except:
+        return False
+
+    if request.authorization.username not in auth:
+        return False
+
+    pw = auth[request.authorization.username]
+    if request.authorization.password != pw:
+        return False
+
+    return True
+
+
+def authenticated(f):
+    @functools.wraps(f)
+    def decorated(*args, **kwargs):
+        if not auth_ok()
+            return Response('Authentication required', 401,
+                {'WWW-Authenticate': 'Basic realm="Stone Ridge Pushers"'})
+        return f(*args, **kwargs)
+    return decorated
+
+
 @app.route('/mark_handled', methods=['POST'])
+@authenticated
 def mark_handled():
     handled_ids = request.form.getlist('id')
 
@@ -46,6 +88,7 @@ def mark_handled():
 
 
 @app.route('/list_unhandled', methods=['GET'])
+@authenticated
 def list_unhandled():
     g.db.execute("""SELECT * FROM pushes WHERE handled = 'f'""")
     res = g.db.fetchall()
@@ -80,6 +123,7 @@ def list_unhandled():
 
 
 @app.route('/srpush', methods=['POST'])
+@authenticated
 def srpush():
     srid = request.form.get('srid', None)
     ldap = request.form.get('ldap', None)
@@ -109,6 +153,7 @@ def srpush():
 
     return 'ok'
 
+
 @app.route('/')
 def index():
     return '''<!DOCTYPE html>
@@ -121,6 +166,7 @@ def index():
     Nothing to see here
   </body>
 </html>'''
+
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
