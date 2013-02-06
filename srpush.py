@@ -8,6 +8,8 @@ from flask import g
 from flask import request
 from flask import Response
 
+import db
+
 app = Flask(__name__)
 
 @app.before_request
@@ -32,7 +34,7 @@ def before_request():
 
 
 @app.teardown_request
-def teardown_request():
+def teardown_request(exception):
     conn = g.db.connection
     conn.commit()
     conn.close()
