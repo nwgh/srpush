@@ -84,7 +84,7 @@ def mark_handled():
     handled_ids = request.form.getlist('id')
 
     for pushid in handled_ids:
-        g.db.execute("""UPDATE pushes SET handled = 't' WHERE pushid = %s""",
+        g.db.execute("""UPDATE pushes SET handled = 't' WHERE id = %s""",
                 (pushid,))
 
     return 'ok'
