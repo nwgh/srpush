@@ -1,6 +1,7 @@
 import base64
 import functools
 import json
+import os
 
 from flask import Flask
 from flask import g
@@ -68,7 +69,7 @@ def auth_ok():
 def authenticated(f):
     @functools.wraps(f)
     def decorated(*args, **kwargs):
-        if not auth_ok()
+        if not auth_ok():
             return Response('Authentication required', 401,
                 {'WWW-Authenticate': 'Basic realm="Stone Ridge Pushers"'})
         return f(*args, **kwargs)
