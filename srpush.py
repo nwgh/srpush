@@ -12,6 +12,7 @@ import db
 
 app = Flask(__name__)
 
+
 @app.before_request
 def before_request():
     conn = db.get_conn()
@@ -23,7 +24,6 @@ def before_request():
     for ncid, ncname in res:
         g.nc_map[ncname] = ncid
     g.ncid_map = dict((v, k) for k, v in g.nc_map.items())
-
 
     g.db.execute("""SELECT * FROM operating_systems""")
     res = g.db.fetchall()
@@ -73,7 +73,8 @@ def authenticated(f):
     def decorated(*args, **kwargs):
         if not auth_ok():
             return Response('Authentication required', 401,
-                {'WWW-Authenticate': 'Basic realm="Stone Ridge Pushers"'})
+                            {'WWW-Authenticate':
+                             'Basic realm="Stone Ridge Pushers"'})
         return f(*args, **kwargs)
     return decorated
 
@@ -85,7 +86,7 @@ def mark_handled():
 
     for pushid in handled_ids:
         g.db.execute("""UPDATE pushes SET handled = 't' WHERE id = %s""",
-                (pushid,))
+                     (pushid,))
 
     return 'ok'
 
@@ -103,14 +104,15 @@ def list_unhandled():
 
         netconfigs = []
         g.db.execute("""SELECT ncid FROM push_netconfigs WHERE pushid = %s""",
-                (pushid,))
+                     (pushid,))
         nres = g.db.fetchall()
         for nr in nres:
             netconfigs.append(g.ncid_map[nr[0]])
 
         operating_systems = []
-        g.db.execute("""SELECT osid FROM push_operating_systems WHERE pushid = %s""",
-                (pushid,))
+        g.db.execute("""SELECT osid FROM push_operating_systems
+                        WHERE pushid = %s""",
+                     (pushid,))
         ores = g.db.fetchall()
         for or_ in ores:
             operating_systems.append(g.osid_map[or_[0]])
@@ -138,23 +140,43 @@ def srpush():
             not operating_systems:
         raise Exception('Missing info from request!')
 
-    g.db.execute("""INSERT INTO pushes (srid, ldap, sha) VALUES (%s, %s, %s)""",
-            (srid, ldap, sha))
+    g.db.execute("""INSERT INTO pushes (srid, ldap, sha)
+                    VALUES (%s, %s, %s)""",
+                 (srid, ldap, sha))
     g.db.execute("""SELECT LASTVAL()""")
     res = g.db.fetchall()
     pushid = res[0][0]
 
     for nc in netconfigs:
         ncid = g.nc_map[nc]
-        g.db.execute("""INSERT INTO push_netconfigs (pushid, ncid) VALUES
-                (%s, %s)""", (pushid, ncid))
+        g.db.execute("""INSERT INTO push_netconfigs (pushid, ncid)
+                        VALUES (%s, %s)""", (pushid, ncid))
 
     for ops in operating_systems:
         osid = g.os_map[ops]
-        g.db.execute("""INSERT INTO push_operating_systems (pushid, osid) VALUES
-                (%s, %s)""", (pushid, osid))
+        g.db.execute("""INSERT INTO push_operating_systems (pushid, osid)
+                        VALUES (%s, %s)""", (pushid, osid))
 
     return 'ok'
+
+
+@app.route('/status/<srid>', methods=['GET'])
+@authenticated
+def status(srid):
+    # TODO
+    pass
+
+
+@app.route('/status/update', methods=['POST'])
+@authenticated
+def status_update():
+    srid = request.form.get('srid', None)
+    status = request.form.get('status', None)
+
+    if not srid or not status:
+        raise Exception('Missing info from request!')
+
+    # TODO
 
 
 @app.route('/')
