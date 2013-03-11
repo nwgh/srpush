@@ -1,0 +1,17 @@
+<div class="push">
+    <div class="push_metadata">
+        LDAP: {{ ldap }}<br>
+        SHA: {{ sha }}
+    </div>
+    {% for osname in ['windows', 'mac', 'linux'] %}
+    {% for ncname in ['broadband', 'umts', 'gsm'] %}
+    {% if (g.nc_map[ncname], g.os_map[osname]) in push %}
+    <div class="row">
+        {{ osname }}
+        {{ ncname }}
+        {{ push[(g.nc_map[ncname], g.os_map[osname])] }}
+    </div>
+    {% endif %}
+    {% endfor %}
+    {% endfor %}
+</div>

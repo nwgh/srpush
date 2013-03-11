@@ -67,5 +67,14 @@ if __name__ == '__main__':
                     (pushid int REFERENCES pushes(id) ON DELETE CASCADE,
                      osid int REFERENCES operating_systems(id) ON DELETE CASCADE)""")
 
+        cur.execute("""SELECT * FROM pg_catalog.pg_tables
+                       WHERE tablename = 'push_status'""")
+        if not cur.fetchall():
+            cur.execute("""CREATE TABLE push_status
+                           (pushid int references pushes(id) ON DELETE CASCADE,
+                            osid int references operating_systems(id) ON DELETE CASCADE,
+                            ncid int references netconfigs(id) ON DELETE CASCADE,
+                            status text)""")
+
     conn.commit()
     conn.close()

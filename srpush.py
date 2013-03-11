@@ -5,6 +5,7 @@ import os
 
 from flask import Flask
 from flask import g
+from flask import render_template
 from flask import request
 from flask import Response
 
@@ -181,16 +182,24 @@ def status_update():
 
 @app.route('/')
 def index():
-    return '''<!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8">
-    <title>Move Along</title>
-  </head>
-  <body>
-    Nothing to see here
-  </body>
-</html>'''
+    g.db.execute("""SELECT id, ldap, sha FROM pushes
+                    ORDER BY id DESC
+                    LIMIT 10""")
+    res = g.db.fetchall()
+    pushes = []
+    for r in res:
+        id_, ldap, sha = r
+        g.db.execute("""SELECT ncid, osid, status FROM status
+                        WHERE id = %s""", id_)
+        stats = g.db.fetchall()
+        push = {}
+        for s in stats:
+            ncid, osid, status = s
+            push[(ncid, osid)] = status
+        rendered_push = render_template('push_status.html', push=push,
+                                        ldap=ldap, sha=sha)
+        pushes.append(rendered_push)
+    return render_template('status.html', pushes=pushes)
 
 
 if __name__ == '__main__':
