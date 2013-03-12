@@ -148,36 +148,57 @@ def srpush():
     res = g.db.fetchall()
     pushid = res[0][0]
 
+    ncids = set()
+    osids = set()
+
     for nc in netconfigs:
         ncid = g.nc_map[nc]
+        ncids.add(ncid)
         g.db.execute("""INSERT INTO push_netconfigs (pushid, ncid)
                         VALUES (%s, %s)""", (pushid, ncid))
 
     for ops in operating_systems:
         osid = g.os_map[ops]
+        osids.add(osid)
         g.db.execute("""INSERT INTO push_operating_systems (pushid, osid)
                         VALUES (%s, %s)""", (pushid, osid))
 
+    for ncid in ncids:
+        for osid in osids:
+            g.db.execute("""INSERT INTO push_status (pushid, osid, ncid,
+                            status) VALUES (%s, %s, %s, 'waiting')""",
+                         (pushid, osid, ncid))
+
     return 'ok'
-
-
-@app.route('/status/<srid>', methods=['GET'])
-@authenticated
-def status(srid):
-    # TODO
-    pass
 
 
 @app.route('/status/update', methods=['POST'])
 @authenticated
 def status_update():
     srid = request.form.get('srid', None)
+    ncid = request.form.get('nc', None)
+    osid = request.form.get('os', None)
     status = request.form.get('status', None)
 
     if not srid or not status:
         raise Exception('Missing info from request!')
 
-    # TODO
+    g.db.execute("""SELECT id FROM pushes WHERE srid = %s""",
+                 (srid,))
+    pushid = g.db.fetchall()[0][0]
+
+    query = """UPDATE push_status SET status = %s WHERE pushid = %s"""
+    args = [status, pushid]
+    if ncid:
+        query += """ AND ncid = %s"""
+        args.append(ncid)
+    if osid:
+        query += """ AND osid = %s"""
+        args.append(osid)
+
+    g.db.execute(query, args)
+
+    return 'ok'
 
 
 @app.route('/')
@@ -188,9 +209,9 @@ def index():
     res = g.db.fetchall()
     pushes = []
     for r in res:
-        id_, ldap, sha = r
-        g.db.execute("""SELECT ncid, osid, status FROM status
-                        WHERE id = %s""", id_)
+        pushid, ldap, sha = r
+        g.db.execute("""SELECT ncid, osid, status FROM push_status
+                        WHERE id = %s""", (pushid,))
         stats = g.db.fetchall()
         push = {}
         for s in stats:
