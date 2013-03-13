@@ -1,0 +1,25 @@
+.push {
+    width: 100%;
+    border-bottom: 1px solid;
+}
+
+.push:last-child {
+    border: none;
+}
+
+.metadata {
+    font-weight: bold;
+}
+
+.row {
+}
+
+.osname {
+}
+
+.ncname {
+}
+
+.status {
+    font-style: italic;
+}
